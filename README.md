@@ -1,4 +1,3 @@
-[README_PharmaExpress.md](https://github.com/user-attachments/files/20111154/README_PharmaExpress.md)
 # 💊 PharmaExpress – Microservices pour Commande et Livraison de Médicaments
 
 PharmaExpress est une plateforme décentralisée de commande de médicaments, conçue en architecture microservices, avec communication REST, gRPC, GraphQL, Kafka et sécurisation par JWT.
@@ -171,6 +170,3 @@ query {
 
 ---
 
-## 💬 Questions ou Suggestions ?
-
-N'hésitez pas à ouvrir une issue sur le dépôt GitHub.
