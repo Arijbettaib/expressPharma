@@ -1,172 +1,89 @@
-# 💊 PharmaExpress – Microservices pour Commande et Livraison de Médicaments
 
-PharmaExpress est une plateforme décentralisée de commande de médicaments, conçue en architecture microservices, avec communication REST, gRPC, GraphQL, Kafka et sécurisation par JWT.
+# 📦 Documentation Technique – Projet PharmaExpress
 
----
+## 🗂️ 1. Vue d’ensemble du projet
 
-## 🏗️ Architecture Microservices
-
-```mermaid
-graph TD
-  subgraph Frontend
-    UI[Interface Client]
-  end
-
-  subgraph Gateway (Apollo GraphQL)
-    GW
-  end
-
-  subgraph Services
-    AUTH(Auth Service)
-    ORDER(Order Service)
-    PHARMA(Pharma Service - gRPC)
-    NOTIF(Notification Service - Kafka)
-  end
-
-  subgraph Infra
-    DB[(MongoDB)]
-    KAFKA[(Kafka)]
-    ZK[(Zookeeper)]
-  end
-
-  UI --> GW
-  GW --> AUTH
-  GW --> ORDER
-  ORDER --> DB
-  ORDER --> KAFKA
-  KAFKA --> PHARMA
-  PHARMA --> KAFKA
-  KAFKA --> NOTIF
-```
+PharmaExpress est une application web distribuée en microservices permettant :
+- la gestion des utilisateurs et de leur authentification,
+- la passation de commandes de médicaments,
+- la gestion du stock côté pharmacie,
+- la notification automatique des utilisateurs à chaque changement de statut de commande,
+- un API Gateway centralisé via GraphQL,
+- un tableau de bord admin (à venir).
 
 ---
 
-## 🧪 Tech Stack
+## 🧩 2. Architecture générale
 
-| Composant             | Stack                                      |
-|-----------------------|--------------------------------------------|
-| Authentification      | Node.js + Express + JWT + MongoDB          |
-| Commandes             | Node.js + Express + MongoDB                |
-| Validation Pharma     | gRPC (Node.js) + Kafka                     |
-| Notification          | Kafka Consumer (Node.js)                   |
-| API Gateway           | Apollo Server (GraphQL) + REST + JWT       |
-| Base de données       | MongoDB (Docker container)                 |
-| Message Broker        | Kafka + Zookeeper (Docker container)       |
+**Microservices principaux :**
+- `auth-service` (REST) → gestion des utilisateurs, JWT
+- `order-service` (REST + gRPC + Kafka + WebSocket) → gestion des commandes
+- `pharma-service` (gRPC) → validation/traitement commandes
+- `notification-service` (Kafka + Nodemailer) → envoi de mails
+- `gateway` (GraphQL/Apollo Server) → point d’entrée unique
 
 ---
 
-## 🚀 Lancement rapide
+## 🔗 3. Communication interservices
 
-```bash
-# 1. Cloner le projet
-git clone https://github.com/votre-utilisateur/pharmaexpress.git
-cd pharmaexpress
-
-# 2. Lancer tous les services
-docker-compose up --build
-```
-
----
-
-## 📂 Structure du projet
-
-```
-pharmaexpress/
-│
-├── auth-service/         # Auth REST API
-├── order-service/        # Commandes (CRUD + Kafka)
-├── pharma-service/       # Validation (gRPC + Kafka)
-├── notification-service/ # Notifications Kafka
-├── gateway/              # GraphQL Gateway + sécurité
-├── proto/                # Fichier commande.proto pour gRPC
-├── docker-compose.yml    # Orchestration Docker
-└── README.md             # Documentation
-```
+| Type                | Depuis             | Vers                   | Protocole   |
+|---------------------|--------------------|-------------------------|-------------|
+| Auth                | Client ↔ auth-service | JWT REST API         | HTTP/REST   |
+| Commandes           | Client ↔ order-service |                      | HTTP/REST   |
+| gRPC Validation     | order-service       | pharma-service         | gRPC        |
+| Notifications       | order-service       | notification-service   | Kafka       |
+| Suivi temps réel    | order-service       | Frontend (Socket.IO)   | WebSocket   |
+| Intégration globale | Frontend ↔ gateway  | Tous (via GraphQL)     | GraphQL     |
 
 ---
 
-## 🔐 Auth-Service – Endpoints REST
+## 🧪 4. Détails techniques par service
 
-| Méthode | Route           | Description                   |
-|---------|------------------|-------------------------------|
-| POST    | /api/auth/register | Inscription utilisateur      |
-| POST    | /api/auth/login    | Connexion + JWT              |
-| GET     | /api/auth/profile  | Récupérer profil (JWT req.) |
+### ✅ auth-service
+- JWT Auth avec `jsonwebtoken`
+- Bcrypt pour hachage de mot de passe
+- MongoDB pour stockage des utilisateurs
 
----
+### 🛒 order-service
+- REST API pour les clients
+- gRPC client vers `pharma-service`
+- Kafka producer vers `notification-service`
+- WebSocket avec Socket.IO pour MAJ temps réel
 
-## 📦 Order-Service – Endpoints REST
+### 💊 pharma-service
+- gRPC Server
+- Simule la validation de commande
+- Peut être enrichi par la suite (stock, pharmacie réelle)
 
-| Méthode | Route       | Description               |
-|---------|-------------|---------------------------|
-| POST    | /api/orders | Créer une commande        |
-| GET     | /api/orders | Récupérer mes commandes   |
+### ✉️ notification-service
+- Kafka consumer
+- Nodemailer (via Mailtrap)
+- Notification mail sur changement de statut de commande
 
----
-
-## 💊 Pharma-Service – gRPC (commande.proto)
-
-```proto
-service PharmaService {
-  rpc ProcessOrder(OrderRequest) returns (OrderResponse);
-}
-```
-
----
-
-## 📢 Notification-Service – Kafka
-
-- 🔄 Consomme le topic `order_confirmed`
-- 📨 Affiche en console ou simule un email/sms
+### 🌐 gateway
+- Apollo Server
+- GraphQL Schema unifié pour `auth-service`, `order-service`, etc.
+- Point d’entrée unique pour le frontend
 
 ---
 
-## 🌐 Gateway – GraphQL (Apollo)
+## 🧱 5. Technologies utilisées
 
-### Exemple de requête `login` :
-```graphql
-mutation {
-  login(email: "test@test.com", password: "123456")
-}
-```
-
-### Exemple de requête `getUser` :
-```graphql
-query {
-  getUser(token: "xxx.yyy.zzz") {
-    id
-    name
-    email
-  }
-}
-```
+- **Node.js**, **Express** : cœur des services
+- **MongoDB** : base de données NoSQL
+- **gRPC** : pour la communication directe et performante entre order ↔ pharma
+- **Kafka (kafkajs)** : pour la transmission asynchrone de messages (notifications)
+- **Socket.IO** : pour des MAJ temps réel des statuts de commande
+- **Apollo Server** : Gateway GraphQL
+- **Docker + Docker Compose** : orchestration des microservices
+- **Mailtrap** : test d’envoi de mail sécurisé en environnement de développement
 
 ---
 
-## ✅ Tests Postman
+## ⚠️ 6. Défis rencontrés
 
-- Collection fournie dans `/docs/PharmaExpress.postman_collection.json`
-- Tests : register, login, créer commande, confirmer via gRPC, réception Kafka
-
----
-
-## 📷 Captures & schémas
-
-> À intégrer : schéma d’architecture, captures Docker, tests Postman
-
----
-
-## 👤 Auteur
-
-- **Nom** : Arij Bettaieb
-- **GitHub** : [github.com/arijbettaieb](https://github.com/arijbettaieb)
-
----
-
-## 📌 Remarques
-
-- Tous les services communiquent via `docker-compose` (nom du container = nom du service)
-- Assurez-vous que les ports ne sont pas utilisés localement (3000, 3001, 3002, 4000, 50051, 9092…)
-
----
-
+- Problèmes d’authentification SMTP résolus avec Mailtrap
+- Connexion Kafka en local (noms des services Docker et variables KAFKA_BROKER)
+- Synchronisation gRPC dans un cluster Docker (montage des fichiers .proto)
+- Traitement des erreurs (restarts Kafka Consumer, erreurs réseau)
+- Tests des notifications via Kafka/Email
