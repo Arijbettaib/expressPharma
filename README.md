@@ -1,5 +1,5 @@
 
-# 📦 Documentation Technique – Projet PharmaExpress
+# 📦 – Projet PharmaExpress
 
 ## 🗂️ 1. Vue d’ensemble du projet
 
