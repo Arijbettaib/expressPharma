@@ -9,7 +9,7 @@ PharmaExpress est une application web distribuée en microservices permettant :
 - la gestion du stock côté pharmacie,
 - la notification automatique des utilisateurs à chaque changement de statut de commande,
 - un API Gateway centralisé via GraphQL,
-- un tableau de bord admin (à venir).
+
 
 ---
 
